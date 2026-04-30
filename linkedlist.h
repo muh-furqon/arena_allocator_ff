@@ -4,10 +4,13 @@
 #include "arena.h"
 #include <stddef.h>
 
+// Pindahkan definisi ke sini agar bisa dibaca oleh main.c
+#define ARENA_NULL (size_t)-1 
+
 // Struktur Node berbasis offset
 typedef struct {
     int data;
-    size_t next_offset; // Menyimpan jarak (offset), bukan pointer asli!
+    size_t next_offset;
 } Node;
 
 // Prototipe fungsi Linked List
