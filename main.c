@@ -1,45 +1,54 @@
 #include <stdio.h>
 #include "arena.h"
+#include "linkedlist.h" // Wajib di-include agar Linked List terbaca
 
-#define ARENA_CAPACITY 1024 // 1kb
+#define ARENA_CAPACITY 1024 // 1 KB
 
-//Static buffer menggantikan malloc
 uint8_t static_buffer[ARENA_CAPACITY];
 
 int main() {
     Arena my_arena;
-
-    //Inisiasi
     arena_init(&my_arena, static_buffer, ARENA_CAPACITY);
-    printf("--- STATUS ARENA AWAL ---\n");
-    printf("Kapasitas: %zu bytes\n", my_arena.capacity);
-    printf("Offset awal: %zu\n\n", my_arena.curr_offset);
 
-    // Simulasi alokasi
-    // Anggap 1 integer butuh 4 bytes
-    printf("--- MELAKUKAN ALOKASI ---\n");
-    size_t offset_data1 = arena_alloc(&my_arena, sizeof(int));
-    size_t offset_data2 = arena_alloc(&my_arena, sizeof(int));
+    printf("=== MINGGU 2: PENGUJIAN STRUKTUR DATA ===\n\n");
 
-    printf("Data 1 dialokasikan pada offset: %zu\n", offset_data1);
-    printf("Data 2 dialokasikan pada offset: %zu\n", offset_data2);
-    printf("Batas offset arena sekarang: %zu\n\n", my_arena.curr_offset);
+    // ---------------------------------------------------------
+    // 1. ARRAY DALAM ARENA (KONTIGU)
+    // ---------------------------------------------------------
+    printf("[1] ALOKASI ARRAY (5 Elemen Integer)\n");
+    // Alokasi memori untuk 5 buah integer sekaligus
+    size_t array_offset = arena_alloc(&my_arena, 5 * sizeof(int));
+    
+    // Dapatkan pointer asli ke awal array
+    int *arr = (int *)arena_get(&my_arena, array_offset);
+    
+    // Isi array dan cetak alamatnya
+    for (int i = 0; i < 5; i++) {
+        arr[i] = (i + 1) * 10; // Mengisi dengan nilai 10, 20, 30, 40, 50
+        size_t current_item_offset = array_offset + (i * sizeof(int));
+        printf("Array[%d] di offset [%zu] | Nilai: %d\n", i, current_item_offset, arr[i]);
+    }
+    printf("\n");
 
-    // 3. Menulis dan Membaca Data menggunakan arena_get
-    int *ptr_data1 = (int *)arena_get(&my_arena, offset_data1);
-    *ptr_data1 = 1999; // Menyimpan nilai
+    // ---------------------------------------------------------
+    // 2. LINKED LIST BERBASIS OFFSET
+    // ---------------------------------------------------------
+    printf("[2] ALOKASI LINKED LIST\n");
+    size_t head = ARENA_NULL; // Inisialisasi list kosong
+    
+    // Tambahkan beberapa node
+    list_append(&my_arena, &head, 1999);
+    list_append(&my_arena, &head, 2026);
+    list_append(&my_arena, &head, 9999);
 
-    int *ptr_data2 = (int *)arena_get(&my_arena, offset_data2);
-    *ptr_data2 = 2026; // Menyimpan nilai
+    // Lakukan traversal untuk mencetak isinya
+    list_traverse(&my_arena, head);
 
-    printf("--- MEMBACA DATA ---\n");
-    printf("Nilai di offset %zu: %d\n", offset_data1, *ptr_data1);
-    printf("Nilai di offset %zu: %d\n\n", offset_data2, *ptr_data2);
-
-    // 4. Simulasi Reset O(1)
-    printf("--- MELAKUKAN RESET ---\n");
-    arena_reset(&my_arena);
-    printf("Batas offset arena setelah reset: %zu\n", my_arena.curr_offset);
+    // ---------------------------------------------------------
+    // 3. VISUALISASI MEMORI (ARENA DUMP)
+    // ---------------------------------------------------------
+    printf("[3] KONDISI MEMORI SETELAH ALOKASI\n");
+    arena_dump(&my_arena);
 
     return 0;
 }

@@ -37,3 +37,34 @@ void arena_reset(Arena *a) {
     // Efek reset O(1): Cukup kembalikan offset ke 0.
     a->curr_offset = 0;
 }
+
+// Tambahkan fungsi ini di arena.c
+void arena_dump(Arena *a) {
+    printf("--- VISUALISASI MEMORI ARENA (ASCII 2D GRID) ---\n");
+    printf("Kapasitas: %zu bytes | Terpakai: %zu bytes\n", a->capacity, a->curr_offset);
+    
+    // Menampilkan dalam bentuk grid (misal 16 byte per baris)
+    int bytes_per_row = 16;
+    
+    for (size_t i = 0; i < a->capacity; i++) {
+        // Cetak header offset di awal baris
+        if (i % bytes_per_row == 0) {
+            printf("[%04zu] ", i);
+        }
+
+        // Jika byte sudah terpakai (berada di belakang curr_offset)
+        if (i < a->curr_offset) {
+            // Cetak nilai heksadesimal dari byte tersebut
+            printf("%02X ", a->buffer[i]); 
+        } else {
+            // Jika memori masih kosong / belum di-alokasi
+            printf("-- "); 
+        }
+
+        // Pindah baris setiap 16 byte
+        if ((i + 1) % bytes_per_row == 0) {
+            printf("\n");
+        }
+    }
+    printf("\n\n");
+}

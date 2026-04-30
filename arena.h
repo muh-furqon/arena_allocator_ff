@@ -14,5 +14,6 @@ void arena_init(Arena *a, uint8_t *buffer, size_t size);
 size_t arena_alloc(Arena *a, size_t size);
 void *arena_get(Arena *a, size_t offset);
 void arena_reset(Arena *a);
+void arena_dump(Arena *a);
 
 #endif
