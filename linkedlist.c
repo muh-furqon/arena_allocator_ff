@@ -1,9 +1,6 @@
 #include <stdio.h>
 #include "linkedlist.h"
 
-// Definisi pengganti NULL untuk arena
-#define ARENA_NULL (size_t)-1
-
 // Membuat Node baru di dalam arena
 size_t list_create_node(Arena *a, int value) {
     // Minta ruang ke arena sebesar ukuran Node
