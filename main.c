@@ -2,7 +2,7 @@
 #include "arena.h"
 #include "linkedlist.h" // Wajib di-include agar Linked List terbaca
 
-#define ARENA_CAPACITY 1024 // 1 KB
+#define ARENA_CAPACITY 512 // 1 KB
 
 uint8_t static_buffer[ARENA_CAPACITY];
 
