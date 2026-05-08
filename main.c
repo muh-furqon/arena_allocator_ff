@@ -50,7 +50,10 @@ int main() {
 
     // 2. Bukti Penggunaan Memori (Syarat Mutlak Laporan)
     printf("=== BUKTI PENGGUNAAN MEMORI (ARENA DUMP) ===\n");
-    arena_dump(&my_arena);git gi
+    arena_dump(&my_arena);
+
+    arena_reset(&my_arena);
+    arena_dump(&my_arena);
 
     return 0;
 }
