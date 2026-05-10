@@ -26,40 +26,32 @@ void hash_init(Arena *a, HashTable *ht, size_t num_buckets) {
 }
 
 // 2. Mencatat Data Stream (Mencari dan Memperbarui/Menambah)
-void hash_record_stream(Arena *a, HashTable *ht, int key) {
-    // Cari tahu data ini harus masuk ke ember nomor berapa
+int hash_record_stream(Arena *a, HashTable *ht, int key) {
     size_t index = hash_function(key, ht->num_buckets);
-    
-    // Ambil array ember kita
     size_t *buckets = (size_t *)arena_get(a, ht->buckets_offset);
     size_t current_offset = buckets[index];
     
-    // FASE 1: Cari apakah ID (key) ini sudah pernah masuk sebelumnya?
+    // FASE 1: Cari apakah IP ini sudah ada
     while (current_offset != ARENA_NULL) {
         HashNode *node = (HashNode *)arena_get(a, current_offset);
-        
         if (node->key == key) {
-            // Jika ketemu, cukup tambahkan frekuensinya
             node->frequency++;
-            return; // Selesai!
+            return node->frequency; // KEMBALIKAN frekuensi terbaru
         }
         current_offset = node->next_offset;
     }
     
-    // FASE 2: Jika ID ini belum pernah ada, buat Node baru
+    // FASE 2: Jika IP baru
     size_t new_node_offset = arena_alloc(a, sizeof(HashNode));
     HashNode *new_node = (HashNode *)arena_get(a, new_node_offset);
-    
     if (new_node != NULL) {
         new_node->key = key;
-        new_node->frequency = 1; // Kemunculan pertama
-        
-        // Trik Insert at Head: Sambungkan node baru ini ke node terdepan yang lama
+        new_node->frequency = 1; 
         new_node->next_offset = buckets[index];
-        
-        // Jadikan node baru ini sebagai kepala (head) ember yang baru
         buckets[index] = new_node_offset;
+        return 1; // KEMBALIKAN 1 karena ini kemunculan pertama
     }
+    return 0; // Jika gagal
 }
 
 // 3. Mencetak Isi Hash Table (Rekapitulasi)

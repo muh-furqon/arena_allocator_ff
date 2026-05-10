@@ -20,7 +20,7 @@ typedef struct {
 } HashTable;
 
 void hash_init(Arena *a, HashTable *ht, size_t num_buckets);
-void hash_record_stream(Arena *a, HashTable *ht, int key);
+int hash_record_stream(Arena *a, HashTable *ht, int key);
 void hash_print(Arena *a, HashTable *ht);
 
 #endif
