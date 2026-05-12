@@ -25,7 +25,11 @@ int hash_record_stream(Arena *a, HashTable *ht, uint32_t key) {
     while (current_offset != ARENA_NULL) {
         HashNode *node = (HashNode *)arena_get(a, current_offset);
         if (node->key == key) {
-            node->frequency++;
+            // OPSI CAPPING: Jangan ditambah lagi jika sudah mencapai batas maksimum (misal: 1 Juta)
+            // Ini mencegah Integer Overflow yang bisa mereset frekuensi ke angka negatif!
+            if (node->frequency < 1000000) {
+                node->frequency++;
+            }
             return node->frequency;
         }
         current_offset = node->next_offset;
