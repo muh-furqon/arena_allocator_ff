@@ -51,7 +51,9 @@ int hash_record_stream(Arena *a, HashTable *ht, int key) {
         buckets[index] = new_node_offset;
         return 1; // KEMBALIKAN 1 karena ini kemunculan pertama
     }
-    return 0; // Jika gagal
+    
+    // KUNCI PERBAIKAN: Kembalikan -1 sebagai kode ERROR Out-of-Memory
+    return -1;
 }
 
 // 3. Mencetak Isi Hash Table (Rekapitulasi)

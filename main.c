@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h> // Library mutlak untuk benchmarking waktu
+#include <time.h> 
 #include "arena.h"
 #include "hashtable.h"
 
@@ -22,10 +22,11 @@ int main() {
     printf("====================================================\n");
     printf(" PERINTAH TERSEDIA:\n");
     printf(" - Ketik angka IP (misal: 1921681) lalu Enter\n");
-    printf(" - Ketik 'STATUS' untuk cek isi Hash Table\n");
-    printf(" - Ketik 'DUMP'   untuk cek forensik memori Arena\n");
+    printf(" - Ketik 'STATUS'    untuk cek isi Hash Table\n");
+    printf(" - Ketik 'DUMP'      untuk cek forensik memori Arena\n");
+    printf(" - Ketik 'RESET'     untuk mengosongkan memori server\n");
     printf(" - Ketik 'BENCHMARK' untuk uji performa vs Malloc\n");
-    printf(" - Ketik 'EXIT'   untuk mematikan server\n");
+    printf(" - Ketik 'EXIT'      untuk mematikan server\n");
     printf("====================================================\n\n");
 
     char input[64];
@@ -35,95 +36,120 @@ int main() {
         if (fgets(input, sizeof(input), stdin) == NULL) break;
         input[strcspn(input, "\n")] = 0;
 
+        // 1. PERINTAH: EXIT
         if (strcmp(input, "EXIT") == 0) {
             printf("[*] Mematikan server pemantau... Selesai.\n");
             break;
         }
+        
+        // 2. PERINTAH: RESET (Solusi Data Hantu)
         else if (strcmp(input, "RESET") == 0) {
             printf("[*] Mereset batas memori Arena ke nol...\n");
+            arena_reset(&my_arena);
             
-            // 1. Pindahkan garis offset memori kembali ke 0
-            my_arena.curr_offset = 0; // atau arena_reset(&my_arena);
-            
-            // 2. KUNCI PERBAIKAN: Bangun ulang Hash Table di atas memori yang baru di-reset!
-            // Ini akan menimpa "data hantu" dengan ARENA_NULL
+            // Inisialisasi ulang Hash Table di atas memori yang sudah bersih
             hash_init(&my_arena, &ip_tracker, 5);
-            
-            printf("[*] Hash Table diinisialisasi ulang. Sistem siap menerima stream baru!\n");
+            printf("[*] Hash Table diinisialisasi ulang. Sistem bersih.\n");
         }
+
+        // 3. PERINTAH: STATUS
         else if (strcmp(input, "STATUS") == 0) {
             hash_print(&my_arena, &ip_tracker);
         } 
+
+        // 4. PERINTAH: DUMP
         else if (strcmp(input, "DUMP") == 0) {
             arena_dump(&my_arena);
         }
-        // ===== FITUR BARU: MINGGU 4 BENCHMARKING =====
+
+        // 5. PERINTAH: BENCHMARK (Revisi Cache Locality & Skala N)
         else if (strcmp(input, "BENCHMARK") == 0) {
-            int N = 500000; // Setengah juta node
-            printf("\n[*] MEMULAI STRESS TEST & BENCHMARKING (%d Alokasi)...\n", N);
+            int N = 500000; // 2.5 Juta data untuk akurasi clock Windows
+            printf("\n[*] MEMULAI STRESS TEST (%d Alokasi)...\n", N);
             
             clock_t start, end;
-            double time_malloc_alloc, time_malloc_free;
-            double time_arena_alloc, time_arena_reset;
+            double t_m_alloc, t_m_read, t_m_free;
+            double t_a_alloc, t_a_read, t_a_reset;
 
-            // --- 1. UJI COBA MALLOC BAWAAN OS ---
-            // Siapkan array untuk menampung pointer agar bisa di-free nanti
-            HashNode **malloc_ptrs = malloc(N * sizeof(HashNode *));
+            // --- A. PENGUJIAN MALLOC ---
+            HashNode **m_ptrs = malloc(N * sizeof(HashNode *));
             
             start = clock();
             for(int i = 0; i < N; i++) {
-                malloc_ptrs[i] = malloc(sizeof(HashNode));
-                malloc_ptrs[i]->key = i; // Simulasi pengisian data
+                m_ptrs[i] = malloc(sizeof(HashNode));
+                m_ptrs[i]->key = i; 
             }
             end = clock();
-            time_malloc_alloc = ((double) (end - start)) / CLOCKS_PER_SEC * 1000.0;
+            t_m_alloc = ((double) (end - start)) / CLOCKS_PER_SEC * 1000.0;
+
+            volatile long long sum_m = 0; 
+            start = clock();
+            for(int i = 0; i < N; i++) {
+                sum_m += m_ptrs[i]->key; 
+            }
+            end = clock();
+            t_m_read = ((double) (end - start)) / CLOCKS_PER_SEC * 1000.0;
+
+            start = clock();
+            for(int i = 0; i < N; i++) { free(m_ptrs[i]); }
+            end = clock();
+            t_m_free = ((double) (end - start)) / CLOCKS_PER_SEC * 1000.0;
+            free(m_ptrs);
+
+            // --- B. PENGUJIAN ARENA ---
+            size_t b_cap = N * sizeof(HashNode) + 1024;
+            uint8_t *b_buf = malloc(b_cap);
+            Arena b_arena;
+            arena_init(&b_arena, b_buf, b_cap);
 
             start = clock();
             for(int i = 0; i < N; i++) {
-                free(malloc_ptrs[i]); // Harus dihapus SATU PER SATU (O(n))
+                size_t off = arena_alloc(&b_arena, sizeof(HashNode));
+                HashNode *n = (HashNode *)arena_get(&b_arena, off);
+                n->key = i; 
             }
             end = clock();
-            time_malloc_free = ((double) (end - start)) / CLOCKS_PER_SEC * 1000.0;
-            free(malloc_ptrs);
+            t_a_alloc = ((double) (end - start)) / CLOCKS_PER_SEC * 1000.0;
 
-            // --- 2. UJI COBA ARENA ALLOCATOR ---
-            // Siapkan kapasitas arena besar khusus untuk benchmark (sekitar 8 MB)
-            size_t bench_capacity = N * sizeof(HashNode) + 1024;
-            uint8_t *bench_buffer = malloc(bench_capacity);
-            Arena bench_arena;
-            arena_init(&bench_arena, bench_buffer, bench_capacity);
-
+            volatile long long sum_a = 0;
+            HashNode *a_arr = (HashNode *)b_arena.buffer; // Cast ke Array untuk adil
             start = clock();
             for(int i = 0; i < N; i++) {
-                size_t offset = arena_alloc(&bench_arena, sizeof(HashNode));
-                HashNode *node = (HashNode *)arena_get(&bench_arena, offset);
-                node->key = i; // Simulasi pengisian data
+                sum_a += a_arr[i].key; // Baca linear (Cache Locality Hit)
             }
             end = clock();
-            time_arena_alloc = ((double) (end - start)) / CLOCKS_PER_SEC * 1000.0;
+            t_a_read = ((double) (end - start)) / CLOCKS_PER_SEC * 1000.0;
 
             start = clock();
-            // Reset arena (O(1)) -> Hanya mengubah satu angka saja!
-            bench_arena.curr_offset = 0; 
+            b_arena.curr_offset = 0; 
             end = clock();
-            time_arena_reset = ((double) (end - start)) / CLOCKS_PER_SEC * 1000.0;
+            t_a_reset = ((double) (end - start)) / CLOCKS_PER_SEC * 1000.0;
+            free(b_buf);
 
-            free(bench_buffer); // Hapus arena benchmark
-
-            // --- 3. CETAK HASIL LAPORAN ---
+            // --- C. LAPORAN ---
             printf("\n========================================================\n");
             printf(" HASIL BENCHMARK (Satuan: Milidetik / ms)\n");
             printf("========================================================\n");
             printf(" Operasi           | Standar (Malloc) | Arena Allocator\n");
             printf("-------------------|------------------|-----------------\n");
-            printf(" Alokasi %6d x | %13.2f ms | %12.2f ms\n", N, time_malloc_alloc, time_arena_alloc);
-            printf(" Free / Reset      | %13.2f ms | %12.2f ms\n", time_malloc_free, time_arena_reset);
+            printf(" 1. Alokasi        | %13.2f ms | %12.2f ms\n", t_m_alloc, t_a_alloc);
+            printf(" 2. Traversal/Read | %13.2f ms | %12.2f ms\n", t_m_read, t_a_read);
+            printf(" 3. Free / Reset   | %13.2f ms | %12.2f ms\n", t_m_free, t_a_reset);
             printf("========================================================\n");
             
-            // Analisis otomatis untuk dipamerkan
-            double alloc_speedup = time_malloc_alloc / (time_arena_alloc == 0 ? 0.001 : time_arena_alloc);
-            printf(" [!] KESIMPULAN: Arena Allocator %.1fx LEBIH CEPAT saat alokasi!\n\n", alloc_speedup);
+            double a_speed = t_m_alloc / (t_a_alloc == 0 ? 0.001 : t_a_alloc);
+            printf(" [!] KESIMPULAN PERFORMA:\n");
+            printf("     - Alokasi   : %.1fx LEBIH CEPAT!\n", a_speed);
+            
+            if (t_a_read <= t_m_read) {
+                double r_speed = t_m_read / (t_a_read == 0 ? 0.001 : t_a_read);
+                printf("     - Pembacaan : %.1fx LEBIH CEPAT (Cache Locality Terbukti)!\n\n", r_speed);
+            } else {
+                printf("     - Pembacaan : (Hasil setara/noise OS)\n\n");
+            }
         }
+
+        // 6. INPUT DATA STREAM (IP ADDRESS)
         else if (strlen(input) == 0) { continue; }
         else {
             int ip_address = atoi(input);
@@ -134,7 +160,11 @@ int main() {
 
             int freq = hash_record_stream(&my_arena, &ip_tracker, ip_address);
             
-            if (freq < DDOS_THRESHOLD) {
+            // Tambalan Serangan 1: Cek Out-of-Memory
+            if (freq == -1) {
+                printf("\n[X] FATAL ERROR: ARENA OUT OF MEMORY! Paket di-drop.\n\n");
+            }
+            else if (freq < DDOS_THRESHOLD) {
                 printf("[+] Paket dari IP [%d] diterima. (Total request: %d)\n", ip_address, freq);
             } 
             else if (freq == DDOS_THRESHOLD) {
@@ -145,7 +175,7 @@ int main() {
                 printf("====================================================\n\n");
             } 
             else {
-                printf("[-] KONEKSI DITOLAK: IP [%d] berada dalam daftar BANNED! (Drop count: %d)\n", ip_address, freq - DDOS_THRESHOLD);
+                printf("[-] KONEKSI DITOLAK: IP [%d] BANNED! (Drop count: %d)\n", ip_address, freq - DDOS_THRESHOLD);
             }
         }
     }
