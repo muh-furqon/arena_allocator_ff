@@ -35,7 +35,16 @@ int main() {
     while (1) {
         printf("Server_Port> ");
         if (fgets(input, sizeof(input), stdin) == NULL) break;
-        input[strcspn(input, "\n")] = 0;
+
+        // KUNCI PERBAIKAN: Deteksi jika input kepanjangan dan bersihkan stdin (Input Flusher)
+        if (strchr(input, '\n') == NULL) {
+            int c;
+            // Sapu bersih sisa karakter sampai ketemu Enter atau batas File
+            while ((c = getchar()) != '\n' && c != EOF);
+        } else {
+            // Hapus karakter newline (Enter) jika ukurannya normal
+            input[strcspn(input, "\n")] = 0;
+        }
 
         // 1. PERINTAH: EXIT
         if (strcmp(input, "EXIT") == 0) {
