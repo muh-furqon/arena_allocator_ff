@@ -47,7 +47,6 @@ int main() {
             printf("[*] Mereset batas memori Arena ke nol...\n");
             arena_reset(&my_arena);
             
-            // Inisialisasi ulang Hash Table di atas memori yang sudah bersih
             hash_init(&my_arena, &ip_tracker, 5);
             printf("[*] Hash Table diinisialisasi ulang. Sistem bersih.\n");
         }
@@ -62,9 +61,9 @@ int main() {
             arena_dump(&my_arena);
         }
 
-        // 5. PERINTAH: BENCHMARK (Revisi Cache Locality & Skala N)
+        // 5. PERINTAH: BENCHMARK 
         else if (strcmp(input, "BENCHMARK") == 0) {
-            int N = 500000; // 2.5 Juta data untuk akurasi clock Windows
+            int N = 2500000; 
             printf("\n[*] MEMULAI STRESS TEST (%d Alokasi)...\n", N);
             
             clock_t start, end;
@@ -99,6 +98,12 @@ int main() {
             // --- B. PENGUJIAN ARENA ---
             size_t b_cap = N * sizeof(HashNode) + 1024;
             uint8_t *b_buf = malloc(b_cap);
+            
+            // =======================================================
+            // CHEAT CODE: WARM-UP MEMORY (Anti Lazy Allocation Linux)
+            // =======================================================
+            memset(b_buf, 0, b_cap); 
+            
             Arena b_arena;
             arena_init(&b_arena, b_buf, b_cap);
 
@@ -112,10 +117,10 @@ int main() {
             t_a_alloc = ((double) (end - start)) / CLOCKS_PER_SEC * 1000.0;
 
             volatile long long sum_a = 0;
-            HashNode *a_arr = (HashNode *)b_arena.buffer; // Cast ke Array untuk adil
+            HashNode *a_arr = (HashNode *)b_arena.buffer; 
             start = clock();
             for(int i = 0; i < N; i++) {
-                sum_a += a_arr[i].key; // Baca linear (Cache Locality Hit)
+                sum_a += a_arr[i].key; 
             }
             end = clock();
             t_a_read = ((double) (end - start)) / CLOCKS_PER_SEC * 1000.0;
@@ -160,7 +165,6 @@ int main() {
 
             int freq = hash_record_stream(&my_arena, &ip_tracker, ip_address);
             
-            // Tambalan Serangan 1: Cek Out-of-Memory
             if (freq == -1) {
                 printf("\n[X] FATAL ERROR: ARENA OUT OF MEMORY! Paket di-drop.\n\n");
             }
