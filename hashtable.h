@@ -3,25 +3,27 @@
 
 #include "arena.h"
 #include <stddef.h>
+#include <stdint.h> // TAMBAHKAN INI UNTUK uint32_t
 
 #ifndef ARENA_NULL
 #define ARENA_NULL (size_t)-1
 #endif
 
 typedef struct {
-    int key; // ID data stream (ex: kode/nomor punggung pemain)
-    int frequency; // Jumlah kemunculan (dimulai dari 1)
-    size_t next_offset; // Offset ke node selanjutnya kalau ada collision
+    uint32_t key;       // UBAH DARI int MENJADI uint32_t
+    int frequency; 
+    size_t next_offset; 
 } HashNode;
 
 typedef struct {
-    size_t buckets_offset; // offset menuju array of size_t (save head tiap rantai)
-    size_t num_buckets; // jumlah / total slot / bucket tersedia
+    size_t buckets_offset; 
+    size_t num_buckets; 
 } HashTable;
 
 void hash_init(Arena *a, HashTable *ht, size_t num_buckets);
-int hash_record_stream(Arena *a, HashTable *ht, int key);
+
+// UBAH PARAMETER key MENJADI uint32_t
+int hash_record_stream(Arena *a, HashTable *ht, uint32_t key); 
 void hash_print(Arena *a, HashTable *ht);
 
 #endif
-

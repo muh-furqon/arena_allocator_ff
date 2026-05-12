@@ -157,7 +157,9 @@ int main() {
         // 6. INPUT DATA STREAM (IP ADDRESS)
         else if (strlen(input) == 0) { continue; }
         else {
-            int ip_address = atoi(input);
+            // KUNCI PERBAIKAN: Gunakan strtoul dan casting ke uint32_t
+            uint32_t ip_address = (uint32_t)strtoul(input, NULL, 10);
+            
             if (ip_address == 0 && strcmp(input, "0") != 0) {
                 printf("[!] Perintah tidak dikenali.\n");
                 continue;
@@ -169,17 +171,18 @@ int main() {
                 printf("\n[X] FATAL ERROR: ARENA OUT OF MEMORY! Paket di-drop.\n\n");
             }
             else if (freq < DDOS_THRESHOLD) {
-                printf("[+] Paket dari IP [%d] diterima. (Total request: %d)\n", ip_address, freq);
+                // UBAH SEMUA %d UNTUK IP MENJADI %u
+                printf("[+] Paket dari IP [%u] diterima. (Total request: %d)\n", ip_address, freq);
             } 
             else if (freq == DDOS_THRESHOLD) {
                 printf("\n====================================================\n");
                 printf(" [!!!] PERINGATAN ANOMALI KEAMANAN TERDETEKSI [!!!]\n");
-                printf(" IP %d telah mengirim %d request beruntun!\n", ip_address, DDOS_THRESHOLD);
+                printf(" IP %u telah mengirim %d request beruntun!\n", ip_address, DDOS_THRESHOLD);
                 printf(" Tindakan: IP Banned. Akses ditutup.\n");
                 printf("====================================================\n\n");
             } 
             else {
-                printf("[-] KONEKSI DITOLAK: IP [%d] BANNED! (Drop count: %d)\n", ip_address, freq - DDOS_THRESHOLD);
+                printf("[-] KONEKSI DITOLAK: IP [%u] BANNED! (Drop count: %d)\n", ip_address, freq - DDOS_THRESHOLD);
             }
         }
     }
