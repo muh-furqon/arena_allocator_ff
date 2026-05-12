@@ -45,22 +45,33 @@ int hash_record_stream(Arena *a, HashTable *ht, uint32_t key) {
 
 void hash_print(Arena *a, HashTable *ht) {
     size_t *buckets = (size_t *)arena_get(a, ht->buckets_offset);
-    printf("=== REKAPITULASI FREKUENSI (HASH TABLE) ===\n");
+    
+    printf("=== REKAPITULASI FREKUENSI (FORMATTED IP) ===\n");
     for (size_t i = 0; i < ht->num_buckets; i++) {
         printf("Ember [%02zu]: ", i);
+        
         size_t current_offset = buckets[i];
         if (current_offset == ARENA_NULL) {
             printf("-- Kosong --\n");
             continue;
         }
+        
         while (current_offset != ARENA_NULL) {
             HashNode *node = (HashNode *)arena_get(a, current_offset);
             
-            // 3. UBAH FORMAT PRINTF DARI %d MENJADI %u (Unsigned)
-            printf("[IP: %u | Freq: %d] -> ", node->key, node->frequency);
+            // ========================================================
+            // REVERSE MAGIC: Mengurai uint32_t kembali ke 4 Octet
+            // ========================================================
+            uint32_t ip = node->key;
+            unsigned char o1 = (ip >> 24) & 0xFF; // Geser 24 bit ke kanan, ambil 8 bit terakhir
+            unsigned char o2 = (ip >> 16) & 0xFF; // Geser 16 bit ke kanan, ambil 8 bit terakhir
+            unsigned char o3 = (ip >> 8)  & 0xFF; // Geser 8 bit ke kanan, ambil 8 bit terakhir
+            unsigned char o4 = ip & 0xFF;         // Ambil 8 bit terakhir langsung
+            
+            printf("[%u.%u.%u.%u | Freq: %d] -> ", o1, o2, o3, o4, node->frequency);
             current_offset = node->next_offset;
         }
         printf("ARENA_NULL\n");
     }
-    printf("===========================================\n\n");
+    printf("=============================================\n\n");
 }
