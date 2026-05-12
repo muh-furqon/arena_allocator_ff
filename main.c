@@ -38,7 +38,19 @@ int main() {
         if (strcmp(input, "EXIT") == 0) {
             printf("[*] Mematikan server pemantau... Selesai.\n");
             break;
-        } 
+        }
+        else if (strcmp(input, "RESET") == 0) {
+            printf("[*] Mereset batas memori Arena ke nol...\n");
+            
+            // 1. Pindahkan garis offset memori kembali ke 0
+            my_arena.curr_offset = 0; // atau arena_reset(&my_arena);
+            
+            // 2. KUNCI PERBAIKAN: Bangun ulang Hash Table di atas memori yang baru di-reset!
+            // Ini akan menimpa "data hantu" dengan ARENA_NULL
+            hash_init(&my_arena, &ip_tracker, 5);
+            
+            printf("[*] Hash Table diinisialisasi ulang. Sistem siap menerima stream baru!\n");
+        }
         else if (strcmp(input, "STATUS") == 0) {
             hash_print(&my_arena, &ip_tracker);
         } 
